@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Resultados - Outubro 2025</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7f9;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e1e4e8;
+            margin-bottom: 30px;
+        }
+        
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .dashboard-title {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 28px;
+        }
+        
+        .dashboard-subtitle {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #3498db;
+            font-weight: bold;
+            font-style: italic;
+        }
+        
+        .month-display {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+            text-align: center;
+            border-top: 4px solid;
+        }
+        
+        .metric-card.requisicoes {
+            border-top-color: #3498db;
+        }
+        
+        .metric-card.pedidos {
+            border-top-color: #2ecc71;
+        }
+        
+        .metric-card.comprado {
+            border-top-color: #e74c3c;
+        }
+        
+        .metric-card.negociado {
+            border-top-color: #f39c12;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .metric-icon {
+            font-size: 32px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .metric-card.requisicoes .metric-icon {
+            color: #3498db;
+        }
+        
+        .metric-card.pedidos .metric-icon {
+            color: #2ecc71;
+        }
+        
+        .metric-card.comprado .metric-icon {
+            color: #e74c3c;
+        }
+        
+        .metric-card.negociado .metric-icon {
+            color: #f39c12;
+        }
+        
+        .metric-title {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-value {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+            border-left: 4px solid #2c3e50;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 1px solid #e1e4e8;
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title i {
+            color: #3498db;
+        }
+        
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .data-label {
+            font-weight: 500;
+            color: #34495e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .data-label i {
+            width: 20px;
+            color: #7f8c8d;
+        }
+        
+        .data-value {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .percentage {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .double-column {
+            grid-column: span 2;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-item {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+            border-left: 4px solid #2c3e50;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .sla-criticidade-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .sla-card {
+            border-left: 4px solid #27ae60;
+        }
+        
+        .criticidade-card {
+            border-left: 4px solid #3498db;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e1e4e8;
+        }
+        
+        th {
+            color: #7f8c8d;
+            font-weight: normal;
+        }
+        
+        .positive {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .negative {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .urgent {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        
+        .normal {
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .chart-wrapper {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            border-left: 4px solid #2c3e50;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+        
+        @media (max-width: 900px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .sla-criticidade-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid, .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-title {
+                font-size: 24px;
+            }
+            
+            .dashboard-subtitle {
+                font-size: 16px;
+            }
+            
+            .metric-value {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="company-name">Antonio Carlos</div>
+            <!-- Ícones removidos conforme solicitado -->
+        </header>
+        
+        <div class="month-display">Outubro 2025</div>
+        
+        <h2 class="dashboard-title">Dashboard de Resultados</h2>
+        <div class="dashboard-subtitle">Setor de Compras UMTELECOM</div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card requisicoes">
+                <i class="metric-icon fas fa-clipboard-check"></i>
+                <div class="metric-title">Requisições Atendidas</div>
+                <div class="metric-value">43</div>
+            </div>
+            <div class="metric-card pedidos">
+                <i class="metric-icon fas fa-file-invoice-dollar"></i>
+                <div class="metric-title">Pedidos Emitidos</div>
+                <div class="metric-value">58</div>
+            </div>
+            <div class="metric-card comprado">
+                <i class="metric-icon fas fa-shopping-cart"></i>
+                <div class="metric-title">Valor Total Comprado</div>
+                <div class="metric-value">R$ 565.985,68</div>
+            </div>
+            <div class="metric-card negociado">
+                <i class="metric-icon fas fa-handshake"></i>
+                <div class="metric-title">Valor Total Negociado</div>
+                <div class="metric-value">R$ 498.905,95</div>
+            </div>
+        </div>
+        
+        <div class="results-section">
+            <div class="card">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Economia e Eficiência
+                </h3>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-piggy-bank"></i>
+                        Saving - Negociado
+                    </span>
+                    <span class="data-value">R$ 75.086,28</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-percentage"></i>
+                        Percentual de Saving
+                    </span>
+                    <span class="data-value percentage">15,05%</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-times-circle"></i>
+                        Valor Não Negociado
+                    </span>
+                    <span class="data-value">R$ 67.079,73</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Valor Compra Emergencial
+                    </span>
+                    <span class="data-value">R$ 5.794,60</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3 class="card-title">
+                    <i class="fas fa-boxes"></i>
+                    Estatísticas de Volume
+                </h3>
+                <table>
+                    <tr>
+                        <th><i class="fas fa-cube"></i> Total de Itens</th>
+                        <th><i class="fas fa-pallet"></i> Total Produtos</th>
+                    </tr>
+                    <tr>
+                        <td>68</td>
+                        <td>85.290</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Nova seção: SLA e Criticidade Separados -->
+        <div class="sla-criticidade-grid">
+            <div class="stat-item sla-card">
+                <h3 class="card-title">
+                    <i class="fas fa-check-circle positive"></i>
+                    SLA - Níveis de Serviço
+                </h3>
+                <table>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Quantidade</th>
+                        <th>Percentual</th>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-check-circle positive"></i> Positivo</td>
+                        <td>44</td>
+                        <td class="positive">95,65%</td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-times-circle negative"></i> Negativo</td>
+                        <td>2</td>
+                        <td class="negative">4,35%</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="stat-item criticidade-card">
+                <h3 class="card-title">
+                    <i class="fas fa-exclamation-triangle urgent"></i>
+                    Criticidade - Prioridades
+                </h3>
+                <table>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Quantidade</th>
+                        <th>Percentual</th>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-check-circle normal"></i> Normal</td>
+                        <td>51</td>
+                        <td class="normal">94,44%</td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-exclamation-triangle urgent"></i> Urgente</td>
+                        <td>3</td>
+                        <td class="urgent">5,56%</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Visualização Comparativa
+                </h3>
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <div class="chart-title">
+                            <i class="fas fa-balance-scale"></i>
+                            SLA - Positivo vs Negativo
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="slaChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div class="chart-title">
+                            <i class="fas fa-clock"></i>
+                            Criticidade - Urgente vs Normal
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="criticidadeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-item">
+                <h3 class="card-title">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Resumo de Performance
+                </h3>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-chart-line positive"></i>
+                        SLA Positivo
+                    </span>
+                    <span class="data-value positive">95,65%</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-check-circle normal"></i>
+                        Itens Normais
+                    </span>
+                    <span class="data-value normal">94,44%</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-exclamation-triangle urgent"></i>
+                        Itens Urgentes
+                    </span>
+                    <span class="data-value urgent">5,56%</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">
+                        <i class="fas fa-times-circle negative"></i>
+                        SLA Negativo
+                    </span>
+                    <span class="data-value negative">4,35%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dados para os gráficos - Outubro 2025
+            const slaData = {
+                datasets: [{
+                    data: [44, 2], // Positivo: 44, Negativo: 2
+                    backgroundColor: ['#27ae60', '#e74c3c'],
+                    borderWidth: 0,
+                    labels: ['Positivo (95,65%)', 'Negativo (4,35%)']
+                }]
+            };
+            
+            const criticidadeData = {
+                datasets: [{
+                    data: [3, 51], // Urgente: 3, Normal: 51
+                    backgroundColor: ['#f39c12', '#3498db'],
+                    borderWidth: 0,
+                    labels: ['Urgente (5,56%)', 'Normal (94,44%)']
+                }]
+            };
+            
+            // Configuração comum para os gráficos
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                size: 12
+                            },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label.split(' (')[0]}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Criar gráfico SLA
+            const slaCtx = document.getElementById('slaChart').getContext('2d');
+            new Chart(slaCtx, {
+                type: 'doughnut',
+                data: slaData,
+                options: chartOptions
+            });
+            
+            // Criar gráfico Criticidade
+            const criticidadeCtx = document.getElementById('criticidadeChart').getContext('2d');
+            new Chart(criticidadeCtx, {
+                type: 'doughnut',
+                data: criticidadeData,
+                options: chartOptions
+            });
+        });
+    </script>
+</body>
+</html>
