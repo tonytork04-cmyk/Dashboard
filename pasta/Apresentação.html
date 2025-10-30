@@ -6,6 +6,40 @@
     <title>Dashboard de Resultados - Outubro 2025</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCzv3tPGikGJYqKf-ULdivBJ-UIo20VD9M",
+            authDomain: "banco-dasboard.firebaseapp.com",
+            projectId: "banco-dasboard",
+            storageBucket: "banco-dasboard.firebasestorage.app",
+            messagingSenderId: "646124605613",
+            appId: "1:646124605613:web:fa52a224aa320a0d6ef624"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        
+        // Initialize Cloud Firestore and get a reference to the service
+        const db = getFirestore(app);
+        
+        // Make Firebase available globally
+        window.firebaseApp = app;
+        window.firestore = db;
+        window.firebaseModules = {
+            doc,
+            getDoc
+        };
+        
+        console.log("Firebase initialized successfully in Dashboard!");
+    </script>
+    
     <style>
         * {
             margin: 0;
@@ -40,6 +74,25 @@
             color: #2c3e50;
         }
         
+        .navigation {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .nav-btn {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background-color: #2980b9;
+        }
+        
         .dashboard-title {
             margin-bottom: 10px;
             color: #2c3e50;
@@ -61,6 +114,14 @@
             font-size: 16px;
             color: #7f8c8d;
             font-weight: 500;
+        }
+        
+        .last-update {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #95a5a6;
+            font-style: italic;
         }
         
         .metrics-grid {
@@ -316,6 +377,43 @@
             width: 100%;
         }
         
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading-spinner {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 900px) {
             .metrics-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -357,34 +455,39 @@
     <div class="container">
         <header>
             <div class="company-name">Antonio Carlos</div>
-            <!-- Ícones removidos conforme solicitado -->
+            <div class="navigation">
+                <a href="../edicao.html" class="nav-btn">
+                    <i class="fas fa-edit"></i> Editar Dados
+                </a>
+            </div>
         </header>
         
-        <div class="month-display">Outubro 2025</div>
+        <div class="month-display" id="monthDisplay">Outubro 2025</div>
+        <div class="last-update" id="lastUpdate"></div>
         
         <h2 class="dashboard-title">Dashboard de Resultados</h2>
-        <div class="dashboard-subtitle">Setor de Compras UMTELECOM</div>
+        <div class="dashboard-subtitle" id="dashboardSubtitle">Setor de Compras UMTELECOM</div>
         
         <div class="metrics-grid">
             <div class="metric-card requisicoes">
                 <i class="metric-icon fas fa-clipboard-check"></i>
                 <div class="metric-title">Requisições Atendidas</div>
-                <div class="metric-value">43</div>
+                <div class="metric-value" id="requisicoesValue">43</div>
             </div>
             <div class="metric-card pedidos">
                 <i class="metric-icon fas fa-file-invoice-dollar"></i>
                 <div class="metric-title">Pedidos Emitidos</div>
-                <div class="metric-value">58</div>
+                <div class="metric-value" id="pedidosValue">58</div>
             </div>
             <div class="metric-card comprado">
                 <i class="metric-icon fas fa-shopping-cart"></i>
                 <div class="metric-title">Valor Total Comprado</div>
-                <div class="metric-value">R$ 565.985,68</div>
+                <div class="metric-value" id="valorCompradoValue">R$ 565.985,68</div>
             </div>
             <div class="metric-card negociado">
                 <i class="metric-icon fas fa-handshake"></i>
                 <div class="metric-title">Valor Total Negociado</div>
-                <div class="metric-value">R$ 498.905,95</div>
+                <div class="metric-value" id="valorNegociadoValue">R$ 498.905,95</div>
             </div>
         </div>
         
@@ -399,28 +502,28 @@
                         <i class="fas fa-piggy-bank"></i>
                         Saving - Negociado
                     </span>
-                    <span class="data-value">R$ 75.086,28</span>
+                    <span class="data-value" id="savingValue">R$ 75.086,28</span>
                 </div>
                 <div class="data-row">
                     <span class="data-label">
                         <i class="fas fa-percentage"></i>
                         Percentual de Saving
                     </span>
-                    <span class="data-value percentage">15,05%</span>
+                    <span class="data-value percentage" id="percentualSavingValue">15,05%</span>
                 </div>
                 <div class="data-row">
                     <span class="data-label">
                         <i class="fas fa-times-circle"></i>
                         Valor Não Negociado
                     </span>
-                    <span class="data-value">R$ 67.079,73</span>
+                    <span class="data-value" id="valorNaoNegociadoValue">R$ 67.079,73</span>
                 </div>
                 <div class="data-row">
                     <span class="data-label">
                         <i class="fas fa-exclamation-triangle"></i>
                         Valor Compra Emergencial
                     </span>
-                    <span class="data-value">R$ 5.794,60</span>
+                    <span class="data-value" id="valorEmergencialValue">R$ 5.794,60</span>
                 </div>
             </div>
             
@@ -435,8 +538,8 @@
                         <th><i class="fas fa-pallet"></i> Total Produtos</th>
                     </tr>
                     <tr>
-                        <td>68</td>
-                        <td>85.290</td>
+                        <td id="totalItensValue">68</td>
+                        <td id="totalProdutosValue">85.290</td>
                     </tr>
                 </table>
             </div>
@@ -457,19 +560,19 @@
                     </tr>
                     <tr>
                         <td><i class="fas fa-check-circle positive"></i> Positivo</td>
-                        <td>44</td>
-                        <td class="positive">95,65%</td>
+                        <td id="slaPositivoValue">44</td>
+                        <td class="positive" id="slaPositivoPercentualValue">95,65%</td>
                     </tr>
                     <tr>
                         <td><i class="fas fa-times-circle negative"></i> Negativo</td>
-                        <td>2</td>
-                        <td class="negative">4,35%</td>
+                        <td id="slaNegativoValue">2</td>
+                        <td class="negative" id="slaNegativoPercentualValue">4,35%</td>
                     </tr>
                 </table>
             </div>
             
             <div class="stat-item criticidade-card">
-                <h3 class="card-title">
+                <h3 class="cardtitle">
                     <i class="fas fa-exclamation-triangle urgent"></i>
                     Criticidade - Prioridades
                 </h3>
@@ -481,13 +584,13 @@
                     </tr>
                     <tr>
                         <td><i class="fas fa-check-circle normal"></i> Normal</td>
-                        <td>51</td>
-                        <td class="normal">94,44%</td>
+                        <td id="criticidadeNormalValue">51</td>
+                        <td class="normal" id="criticidadeNormalPercentualValue">94,44%</td>
                     </tr>
                     <tr>
                         <td><i class="fas fa-exclamation-triangle urgent"></i> Urgente</td>
-                        <td>3</td>
-                        <td class="urgent">5,56%</td>
+                        <td id="criticidadeUrgenteValue">3</td>
+                        <td class="urgent" id="criticidadeUrgentePercentualValue">5,56%</td>
                     </tr>
                 </table>
             </div>
@@ -531,97 +634,214 @@
                         <i class="fas fa-chart-line positive"></i>
                         SLA Positivo
                     </span>
-                    <span class="data-value positive">95,65%</span>
+                    <span class="data-value positive" id="resumoSlaPositivo">95,65%</span>
                 </div>
                 <div class="data-row">
                     <span class="data-label">
                         <i class="fas fa-check-circle normal"></i>
                         Itens Normais
                     </span>
-                    <span class="data-value normal">94,44%</span>
+                    <span class="data-value normal" id="resumoItensNormais">94,44%</span>
                 </div>
                 <div class="data-row">
                     <span class="data-label">
                         <i class="fas fa-exclamation-triangle urgent"></i>
                         Itens Urgentes
                     </span>
-                    <span class="data-value urgent">5,56%</span>
+                    <span class="data-value urgent" id="resumoItensUrgentes">5,56%</span>
                 </div>
                 <div class="data-row">
                     <span class="data-label">
                         <i class="fas fa-times-circle negative"></i>
                         SLA Negativo
                     </span>
-                    <span class="data-value negative">4,35%</span>
+                    <span class="data-value negative" id="resumoItensNegativos">4,35%</span>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="loading" id="loading">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Carregando dados do Firebase...</p>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Dados para os gráficos - Outubro 2025
-            const slaData = {
-                datasets: [{
-                    data: [44, 2], // Positivo: 44, Negativo: 2
-                    backgroundColor: ['#27ae60', '#e74c3c'],
-                    borderWidth: 0,
-                    labels: ['Positivo (95,65%)', 'Negativo (4,35%)']
-                }]
-            };
+            const loading = document.getElementById('loading');
             
-            const criticidadeData = {
-                datasets: [{
-                    data: [3, 51], // Urgente: 3, Normal: 51
-                    backgroundColor: ['#f39c12', '#3498db'],
-                    borderWidth: 0,
-                    labels: ['Urgente (5,56%)', 'Normal (94,44%)']
-                }]
-            };
+            // Função para mostrar/ocultar loading
+            function setLoading(show) {
+                loading.style.display = show ? 'flex' : 'none';
+            }
             
-            // Configuração comum para os gráficos
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            font: {
-                                size: 12
-                            },
-                            padding: 20
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.raw || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = Math.round((value / total) * 100);
-                                return `${label.split(' (')[0]}: ${value} (${percentage}%)`;
+            // Função para carregar dados do Firebase
+            async function loadDataFromFirebase() {
+                setLoading(true);
+                
+                try {
+                    const { doc, getDoc } = window.firebaseModules;
+                    const db = window.firestore;
+                    
+                    // Carregar do Firebase
+                    const docRef = doc(db, "dashboard", "compras-outubro-2025");
+                    const docSnap = await getDoc(docRef);
+                    
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        updateDashboardWithData(data);
+                        setLoading(false);
+                        console.log("Dados carregados do Firebase com sucesso!");
+                    } else {
+                        // Se não encontrar dados no Firebase, usar dados padrão
+                        console.log("Nenhum dado encontrado no Firebase, usando dados padrão.");
+                        setLoading(false);
+                    }
+                    
+                } catch (error) {
+                    console.error("Erro ao carregar do Firebase:", error);
+                    setLoading(false);
+                }
+            }
+            
+            // Função para atualizar o dashboard com os dados
+            function updateDashboardWithData(data) {
+                // Atualizar métricas principais
+                document.getElementById('requisicoesValue').textContent = data.requisicoes || '43';
+                document.getElementById('pedidosValue').textContent = data.pedidos || '58';
+                document.getElementById('valorCompradoValue').textContent = `R$ ${data.valorComprado || '565.985,68'}`;
+                document.getElementById('valorNegociadoValue').textContent = `R$ ${data.valorNegociado || '498.905,95'}`;
+                
+                // Atualizar economia e eficiência
+                document.getElementById('savingValue').textContent = `R$ ${data.saving || '75.086,28'}`;
+                document.getElementById('percentualSavingValue').textContent = `${data.percentualSaving || '15,05'}%`;
+                document.getElementById('valorNaoNegociadoValue').textContent = `R$ ${data.valorNaoNegociado || '67.079,73'}`;
+                document.getElementById('valorEmergencialValue').textContent = `R$ ${data.valorEmergencial || '5.794,60'}`;
+                
+                // Atualizar estatísticas de volume
+                document.getElementById('totalItensValue').textContent = data.totalItens || '68';
+                document.getElementById('totalProdutosValue').textContent = data.totalProdutos || '85.290';
+                
+                // Atualizar SLA
+                document.getElementById('slaPositivoValue').textContent = data.slaPositivo || '44';
+                document.getElementById('slaPositivoPercentualValue').textContent = `${data.slaPositivoPercentual || '95,65'}%`;
+                document.getElementById('slaNegativoValue').textContent = data.slaNegativo || '2';
+                document.getElementById('slaNegativoPercentualValue').textContent = `${data.slaNegativoPercentual || '4,35'}%`;
+                
+                // Atualizar criticidade
+                document.getElementById('criticidadeNormalValue').textContent = data.criticidadeNormal || '51';
+                document.getElementById('criticidadeNormalPercentualValue').textContent = `${data.criticidadeNormalPercentual || '94,44'}%`;
+                document.getElementById('criticidadeUrgenteValue').textContent = data.criticidadeUrgente || '3';
+                document.getElementById('criticidadeUrgentePercentualValue').textContent = `${data.criticidadeUrgentePercentual || '5,56'}%`;
+                
+                // Atualizar resumo de performance
+                document.getElementById('resumoSlaPositivo').textContent = `${data.slaPositivoPercentual || '95,65'}%`;
+                document.getElementById('resumoItensNormais').textContent = `${data.criticidadeNormalPercentual || '94,44'}%`;
+                document.getElementById('resumoItensUrgentes').textContent = `${data.criticidadeUrgentePercentual || '5,56'}%`;
+                document.getElementById('resumoItensNegativos').textContent = `${data.slaNegativoPercentual || '4,35'}%`;
+                
+                // Atualizar informações do cabeçalho
+                document.getElementById('monthDisplay').textContent = data.mesReferencia || 'Outubro 2025';
+                document.getElementById('dashboardSubtitle').textContent = data.setor || 'Setor de Compras UMTELECOM';
+                
+                // Atualizar última atualização
+                if (data.lastUpdated) {
+                    const lastUpdate = new Date(data.lastUpdated);
+                    document.getElementById('lastUpdate').textContent = `Última atualização: ${lastUpdate.toLocaleString('pt-BR')}`;
+                }
+                
+                // Atualizar gráficos
+                updateCharts(data);
+            }
+            
+            // Função para atualizar os gráficos
+            function updateCharts(data) {
+                const slaPositivo = parseInt(data.slaPositivo) || 44;
+                const slaNegativo = parseInt(data.slaNegativo) || 2;
+                const criticidadeUrgente = parseInt(data.criticidadeUrgente) || 3;
+                const criticidadeNormal = parseInt(data.criticidadeNormal) || 51;
+                
+                // Dados para os gráficos
+                const slaData = {
+                    datasets: [{
+                        data: [slaPositivo, slaNegativo],
+                        backgroundColor: ['#27ae60', '#e74c3c'],
+                        borderWidth: 0,
+                        labels: [`Positivo (${((slaPositivo/(slaPositivo+slaNegativo))*100).toFixed(2)}%)`, `Negativo (${((slaNegativo/(slaPositivo+slaNegativo))*100).toFixed(2)}%)`]
+                    }]
+                };
+                
+                const criticidadeData = {
+                    datasets: [{
+                        data: [criticidadeUrgente, criticidadeNormal],
+                        backgroundColor: ['#f39c12', '#3498db'],
+                        borderWidth: 0,
+                        labels: [`Urgente (${((criticidadeUrgente/(criticidadeUrgente+criticidadeNormal))*100).toFixed(2)}%)`, `Normal (${((criticidadeNormal/(criticidadeUrgente+criticidadeNormal))*100).toFixed(2)}%)`]
+                    }]
+                };
+                
+                // Configuração comum para os gráficos
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(2);
+                                    return `${label.split(' (')[0]}: ${value} (${percentage}%)`;
+                                }
                             }
                         }
                     }
+                };
+                
+                // Criar/atualizar gráfico SLA
+                const slaCtx = document.getElementById('slaChart').getContext('2d');
+                if (window.slaChartInstance) {
+                    window.slaChartInstance.destroy();
                 }
-            };
+                window.slaChartInstance = new Chart(slaCtx, {
+                    type: 'doughnut',
+                    data: slaData,
+                    options: chartOptions
+                });
+                
+                // Criar/atualizar gráfico Criticidade
+                const criticidadeCtx = document.getElementById('criticidadeChart').getContext('2d');
+                if (window.criticidadeChartInstance) {
+                    window.criticidadeChartInstance.destroy();
+                }
+                window.criticidadeChartInstance = new Chart(criticidadeCtx, {
+                    type: 'doughnut',
+                    data: criticidadeData,
+                    options: chartOptions
+                });
+            }
             
-            // Criar gráfico SLA
-            const slaCtx = document.getElementById('slaChart').getContext('2d');
-            new Chart(slaCtx, {
-                type: 'doughnut',
-                data: slaData,
-                options: chartOptions
-            });
-            
-            // Criar gráfico Criticidade
-            const criticidadeCtx = document.getElementById('criticidadeChart').getContext('2d');
-            new Chart(criticidadeCtx, {
-                type: 'doughnut',
-                data: criticidadeData,
-                options: chartOptions
-            });
+            // Carregar dados do Firebase quando a página carregar
+            setTimeout(() => {
+                if (window.firestore) {
+                    loadDataFromFirebase();
+                } else {
+                    console.log("Firebase não inicializado, usando dados padrão.");
+                    setLoading(false);
+                }
+            }, 1000);
         });
     </script>
 </body>
