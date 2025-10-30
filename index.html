@@ -10,7 +10,8 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, enableNetwork, disableNetwork } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -28,18 +29,40 @@
         // Initialize Cloud Firestore and get a reference to the service
         const db = getFirestore(app);
         
+        // Initialize Auth
+        const auth = getAuth(app);
+        
         // Make Firebase available globally
         window.firebaseApp = app;
         window.firestore = db;
+        window.firebaseAuth = auth;
         window.firebaseModules = {
             collection,
             doc,
             setDoc,
             getDoc,
-            updateDoc
+            updateDoc,
+            enableNetwork,
+            disableNetwork,
+            onAuthStateChanged
         };
         
         console.log("Firebase initialized successfully!");
+        
+        // Verificar conexão
+        checkFirebaseConnection();
+        
+        async function checkFirebaseConnection() {
+            try {
+                // Tentar uma operação simples para verificar a conexão
+                await enableNetwork(db);
+                console.log("Firebase conectado com sucesso!");
+                window.firebaseConnected = true;
+            } catch (error) {
+                console.warn("Firebase offline, usando modo local:", error);
+                window.firebaseConnected = false;
+            }
+        }
     </script>
     
     <style>
@@ -74,6 +97,28 @@
             font-size: 24px;
             font-weight: bold;
             color: #2c3e50;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .connection-status.online {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .connection-status.offline {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         
         .navigation {
@@ -246,12 +291,17 @@
             gap: 8px;
         }
         
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
         .btn-primary {
             background-color: #3498db;
             color: white;
         }
         
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background-color: #2980b9;
         }
         
@@ -260,7 +310,7 @@
             color: white;
         }
         
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             background-color: #7f8c8d;
         }
         
@@ -269,8 +319,17 @@
             color: white;
         }
         
-        .btn-success:hover {
+        .btn-success:hover:not(:disabled) {
             background-color: #27ae60;
+        }
+        
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        .btn-warning:hover:not(:disabled) {
+            background-color: #e67e22;
         }
         
         .notification {
@@ -283,6 +342,7 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             display: none;
             z-index: 1000;
+            max-width: 400px;
         }
         
         .notification.success {
@@ -295,6 +355,10 @@
         
         .notification.warning {
             background-color: #f39c12;
+        }
+        
+        .notification.info {
+            background-color: #3498db;
         }
         
         .loading {
@@ -353,6 +417,10 @@
             .form-label {
                 margin-bottom: 5px;
             }
+            
+            .button-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -360,6 +428,10 @@
     <div class="container">
         <header>
             <div class="company-name">Antonio Carlos</div>
+            <div class="connection-status offline" id="connectionStatus">
+                <i class="fas fa-wifi"></i>
+                <span>Verificando conexão...</span>
+            </div>
             <div class="navigation">
                 <a href="dashboard.html" class="nav-btn">
                     <i class="fas fa-chart-bar"></i> Ver Dashboard
@@ -541,13 +613,16 @@
                 <button type="button" class="btn btn-secondary" id="btnReset">
                     <i class="fas fa-undo"></i> Restaurar Valores
                 </button>
-                <button type="button" class="btn btn-primary" id="btnLoadFromFirebase">
+                <button type="button" class="btn btn-warning" id="btnRetryConnection">
+                    <i class="fas fa-sync-alt"></i> Tentar Conexão
+                </button>
+                <button type="button" class="btn btn-primary" id="btnLoadFromFirebase" disabled>
                     <i class="fas fa-cloud-download-alt"></i> Carregar do Firebase
                 </button>
                 <button type="button" class="btn btn-primary" id="btnPreview">
                     <i class="fas fa-eye"></i> Visualizar Dashboard
                 </button>
-                <button type="submit" class="btn btn-success" id="btnSave">
+                <button type="submit" class="btn btn-success" id="btnSave" disabled>
                     <i class="fas fa-save"></i> Salvar no Firebase
                 </button>
             </div>
@@ -557,7 +632,7 @@
     <div class="loading" id="loading">
         <div class="loading-spinner">
             <div class="spinner"></div>
-            <p>Processando...</p>
+            <p id="loadingMessage">Processando...</p>
         </div>
     </div>
     
@@ -568,29 +643,73 @@
     <div class="notification error" id="notificationError">
         <i class="fas fa-exclamation-triangle"></i> Erro ao salvar dados no Firebase!
     </div>
+    
+    <div class="notification warning" id="notificationWarning">
+        <i class="fas fa-exclamation-triangle"></i> <span id="warningMessage"></span>
+    </div>
+    
+    <div class="notification info" id="notificationInfo">
+        <i class="fas fa-info-circle"></i> <span id="infoMessage"></span>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('dashboardForm');
             const loading = document.getElementById('loading');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const connectionStatus = document.getElementById('connectionStatus');
             const notificationSuccess = document.getElementById('notificationSuccess');
             const notificationError = document.getElementById('notificationError');
+            const notificationWarning = document.getElementById('notificationWarning');
+            const notificationInfo = document.getElementById('notificationInfo');
+            const warningMessage = document.getElementById('warningMessage');
+            const infoMessage = document.getElementById('infoMessage');
+            const btnLoadFromFirebase = document.getElementById('btnLoadFromFirebase');
+            const btnSave = document.getElementById('btnSave');
+            const btnRetryConnection = document.getElementById('btnRetryConnection');
+            
+            let isFirebaseConnected = false;
+            
+            // Função para atualizar status da conexão
+            function updateConnectionStatus(connected) {
+                isFirebaseConnected = connected;
+                const statusElement = connectionStatus;
+                const statusText = statusElement.querySelector('span');
+                
+                if (connected) {
+                    statusElement.className = 'connection-status online';
+                    statusText.innerHTML = '<i class="fas fa-wifi"></i> Conectado ao Firebase';
+                    btnLoadFromFirebase.disabled = false;
+                    btnSave.disabled = false;
+                } else {
+                    statusElement.className = 'connection-status offline';
+                    statusText.innerHTML = '<i class="fas fa-wifi-slash"></i> Offline - Modo Local';
+                    btnLoadFromFirebase.disabled = true;
+                    btnSave.disabled = true;
+                }
+            }
             
             // Função para mostrar notificação
             function showNotification(notificationElement, message = null) {
-                if (message) {
-                    notificationElement.innerHTML = `<i class="fas ${notificationElement.classList.contains('success') ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i> ${message}`;
+                if (message && notificationElement.querySelector('span')) {
+                    notificationElement.querySelector('span').textContent = message;
                 }
                 notificationElement.style.display = 'block';
                 setTimeout(function() {
                     notificationElement.style.display = 'none';
-                }, 4000);
+                }, 5000);
             }
             
             // Função para mostrar/ocultar loading
-            function setLoading(show) {
+            function setLoading(show, message = "Processando...") {
+                loadingMessage.textContent = message;
                 loading.style.display = show ? 'flex' : 'none';
             }
+            
+            // Botão para tentar reconexão
+            btnRetryConnection.addEventListener('click', function() {
+                checkFirebaseConnection();
+            });
             
             // Botão para restaurar valores originais
             document.getElementById('btnReset').addEventListener('click', function() {
@@ -600,8 +719,12 @@
             });
             
             // Botão para carregar dados do Firebase
-            document.getElementById('btnLoadFromFirebase').addEventListener('click', function() {
-                loadDataFromFirebase();
+            btnLoadFromFirebase.addEventListener('click', function() {
+                if (isFirebaseConnected) {
+                    loadDataFromFirebase();
+                } else {
+                    showNotification(notificationWarning, "Sem conexão com o Firebase. Verifique sua internet.");
+                }
             });
             
             // Botão para visualizar o dashboard
@@ -613,15 +736,53 @@
             // Salvar dados no Firebase quando o formulário for submetido
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                saveDataToFirebase();
+                if (isFirebaseConnected) {
+                    saveDataToFirebase();
+                } else {
+                    showNotification(notificationWarning, "Sem conexão. Os dados serão salvos localmente apenas.");
+                    saveDataToLocalStorage();
+                }
             });
+            
+            // Função para verificar conexão com Firebase
+            async function checkFirebaseConnection() {
+                setLoading(true, "Verificando conexão com Firebase...");
+                
+                try {
+                    const { enableNetwork, doc, getDoc } = window.firebaseModules;
+                    const db = window.firestore;
+                    
+                    // Tentar habilitar rede e fazer uma operação simples
+                    await enableNetwork(db);
+                    
+                    // Tentar uma operação de leitura simples
+                    const docRef = doc(db, "dashboard", "compras-outubro-2025");
+                    await getDoc(docRef);
+                    
+                    setLoading(false);
+                    updateConnectionStatus(true);
+                    showNotification(notificationSuccess, "Conectado ao Firebase com sucesso!");
+                    
+                } catch (error) {
+                    console.warn("Firebase offline, usando modo local:", error);
+                    setLoading(false);
+                    updateConnectionStatus(false);
+                    showNotification(notificationWarning, "Modo offline ativado. Os dados serão salvos localmente.");
+                }
+            }
             
             // Função para salvar dados no Firebase
             async function saveDataToFirebase() {
-                setLoading(true);
+                if (!isFirebaseConnected) {
+                    showNotification(notificationWarning, "Sem conexão. Salvando localmente...");
+                    saveDataToLocalStorage();
+                    return;
+                }
+                
+                setLoading(true, "Salvando dados no Firebase...");
                 
                 try {
-                    const { doc, setDoc, collection } = window.firebaseModules;
+                    const { doc, setDoc } = window.firebaseModules;
                     const db = window.firestore;
                     
                     const formData = getFormData();
@@ -635,16 +796,28 @@
                 } catch (error) {
                     console.error("Erro ao salvar no Firebase:", error);
                     setLoading(false);
-                    showNotification(notificationError, "Erro ao salvar dados: " + error.message);
+                    
+                    if (error.code === 'unavailable') {
+                        updateConnectionStatus(false);
+                        showNotification(notificationWarning, "Conexão perdida. Salvando localmente...");
+                        saveDataToLocalStorage();
+                    } else {
+                        showNotification(notificationError, "Erro ao salvar: " + error.message);
+                    }
                 }
             }
             
             // Função para carregar dados do Firebase
             async function loadDataFromFirebase() {
-                setLoading(true);
+                if (!isFirebaseConnected) {
+                    showNotification(notificationWarning, "Sem conexão com o Firebase.");
+                    return;
+                }
+                
+                setLoading(true, "Carregando dados do Firebase...");
                 
                 try {
-                    const { doc, getDoc, collection } = window.firebaseModules;
+                    const { doc, getDoc } = window.firebaseModules;
                     const db = window.firestore;
                     
                     // Carregar do Firebase
@@ -658,13 +831,20 @@
                         showNotification(notificationSuccess, "Dados carregados com sucesso do Firebase!");
                     } else {
                         setLoading(false);
-                        showNotification(notificationError, "Nenhum dado encontrado no Firebase!");
+                        showNotification(notificationInfo, "Nenhum dado encontrado no Firebase. Use os valores padrão.");
                     }
                     
                 } catch (error) {
                     console.error("Erro ao carregar do Firebase:", error);
                     setLoading(false);
-                    showNotification(notificationError, "Erro ao carregar dados: " + error.message);
+                    
+                    if (error.code === 'unavailable') {
+                        updateConnectionStatus(false);
+                        showNotification(notificationWarning, "Conexão perdida. Carregando dados locais...");
+                        loadDataFromLocalStorage();
+                    } else {
+                        showNotification(notificationError, "Erro ao carregar: " + error.message);
+                    }
                 }
             }
             
@@ -697,32 +877,33 @@
             
             // Função para preencher formulário com dados
             function fillFormWithData(formData) {
-                document.getElementById('requisicoes').value = formData.requisicoes || '';
-                document.getElementById('pedidos').value = formData.pedidos || '';
-                document.getElementById('valorComprado').value = formData.valorComprado || '';
-                document.getElementById('valorNegociado').value = formData.valorNegociado || '';
-                document.getElementById('saving').value = formData.saving || '';
-                document.getElementById('percentualSaving').value = formData.percentualSaving || '';
-                document.getElementById('valorNaoNegociado').value = formData.valorNaoNegociado || '';
-                document.getElementById('valorEmergencial').value = formData.valorEmergencial || '';
-                document.getElementById('totalItens').value = formData.totalItens || '';
-                document.getElementById('totalProdutos').value = formData.totalProdutos || '';
-                document.getElementById('slaPositivo').value = formData.slaPositivo || '';
-                document.getElementById('slaPositivoPercentual').value = formData.slaPositivoPercentual || '';
-                document.getElementById('slaNegativo').value = formData.slaNegativo || '';
-                document.getElementById('slaNegativoPercentual').value = formData.slaNegativoPercentual || '';
-                document.getElementById('criticidadeNormal').value = formData.criticidadeNormal || '';
-                document.getElementById('criticidadeNormalPercentual').value = formData.criticidadeNormalPercentual || '';
-                document.getElementById('criticidadeUrgente').value = formData.criticidadeUrgente || '';
-                document.getElementById('criticidadeUrgentePercentual').value = formData.criticidadeUrgentePercentual || '';
-                document.getElementById('mesReferencia').value = formData.mesReferencia || '';
-                document.getElementById('setor').value = formData.setor || '';
+                document.getElementById('requisicoes').value = formData.requisicoes || '43';
+                document.getElementById('pedidos').value = formData.pedidos || '58';
+                document.getElementById('valorComprado').value = formData.valorComprado || '565.985,68';
+                document.getElementById('valorNegociado').value = formData.valorNegociado || '498.905,95';
+                document.getElementById('saving').value = formData.saving || '75.086,28';
+                document.getElementById('percentualSaving').value = formData.percentualSaving || '15,05';
+                document.getElementById('valorNaoNegociado').value = formData.valorNaoNegociado || '67.079,73';
+                document.getElementById('valorEmergencial').value = formData.valorEmergencial || '5.794,60';
+                document.getElementById('totalItens').value = formData.totalItens || '68';
+                document.getElementById('totalProdutos').value = formData.totalProdutos || '85290';
+                document.getElementById('slaPositivo').value = formData.slaPositivo || '44';
+                document.getElementById('slaPositivoPercentual').value = formData.slaPositivoPercentual || '95,65';
+                document.getElementById('slaNegativo').value = formData.slaNegativo || '2';
+                document.getElementById('slaNegativoPercentual').value = formData.slaNegativoPercentual || '4,35';
+                document.getElementById('criticidadeNormal').value = formData.criticidadeNormal || '51';
+                document.getElementById('criticidadeNormalPercentual').value = formData.criticidadeNormalPercentual || '94,44';
+                document.getElementById('criticidadeUrgente').value = formData.criticidadeUrgente || '3';
+                document.getElementById('criticidadeUrgentePercentual').value = formData.criticidadeUrgentePercentual || '5,56';
+                document.getElementById('mesReferencia').value = formData.mesReferencia || 'Outubro 2025';
+                document.getElementById('setor').value = formData.setor || 'Setor de Compras UMTELECOM';
             }
             
             // Função para salvar dados no localStorage
             function saveDataToLocalStorage() {
                 const formData = getFormData();
                 localStorage.setItem('dashboardData', JSON.stringify(formData));
+                showNotification(notificationInfo, "Dados salvos localmente com sucesso!");
             }
             
             // Carregar dados do localStorage se existirem
@@ -731,18 +912,28 @@
                 if (savedData) {
                     const formData = JSON.parse(savedData);
                     fillFormWithData(formData);
+                    showNotification(notificationInfo, "Dados locais carregados!");
                 }
             }
             
-            // Carregar dados salvos ao iniciar a página
-            loadDataFromLocalStorage();
+            // Inicializar a página
+            function initializePage() {
+                // Carregar dados salvos ao iniciar a página
+                loadDataFromLocalStorage();
+                
+                // Verificar conexão com Firebase
+                setTimeout(() => {
+                    if (window.firestore) {
+                        checkFirebaseConnection();
+                    } else {
+                        console.log("Firebase não inicializado, usando modo local.");
+                        updateConnectionStatus(false);
+                    }
+                }, 1000);
+            }
             
-            // Tentar carregar dados do Firebase automaticamente ao iniciar
-            setTimeout(() => {
-                if (window.firestore) {
-                    loadDataFromFirebase();
-                }
-            }, 1000);
+            // Iniciar a página
+            initializePage();
         });
     </script>
 </body>
